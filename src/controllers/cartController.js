@@ -16,7 +16,9 @@ const addToCart = async (req, res) => {
         res.status(201).json({
             success: true,
             message: "Product Added To Cart",
-            cartItem,
+            data: {
+                cartItem,
+            },
         });
 
     } catch (error) {
@@ -40,7 +42,9 @@ const getCartItems = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            cartItems,
+            data: {
+                cartItems,
+            },
         });
 
     } catch (error) {
@@ -114,7 +118,9 @@ const updateCartQuantity = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Quantity Updated",
-            cartItem,
+            data: {
+                cartItem,
+            }
         });
 
     } catch (error) {

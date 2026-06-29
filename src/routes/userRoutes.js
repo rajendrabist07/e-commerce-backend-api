@@ -17,7 +17,13 @@ const {
 
 const protect = require("../middleware/authMiddleware")
 
-router.post("/register", registerUser);
+const validate = require("../middleware/validationMiddleware");
+
+const {
+    registerValidator,
+} = require("../validators/authValidator")
+
+router.post("/register", registerValidator, validate, registerUser);
 router.post("/login", loginUser);
 router.get("/profile", protect, getUser);
 

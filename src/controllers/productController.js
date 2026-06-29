@@ -1,3 +1,4 @@
+const { data } = require("react-router-dom");
 const Product = require("../models/Product");
 
 
@@ -24,7 +25,9 @@ const createProduct = async (req, res) => {
         res.status(201).json({
             success: true,
             message: "Product Created Successfully",
-            product,
+            data: {
+                product,
+            },
         });
 
     } catch (error) {
@@ -44,8 +47,11 @@ const getProducts = async (req, res) => {
 
         res.status(200).json({
             success: true,
+            message: "Products Fetched Successfully",
             count: products.length,
-            products,
+            data: {
+                products,
+            },
         });
 
     } catch (error) {
@@ -74,7 +80,10 @@ const getSingleProduct = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            product,
+            message: "Product Fetched Successfully",
+            data: {
+                product,
+            },
         });
 
     } catch (error) {
@@ -109,7 +118,9 @@ const updateProduct = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Product Updated Successfully",
-            product,
+            data: {
+                product,
+            },
         });
 
     } catch (error) {

@@ -11,6 +11,12 @@ const cartRoutes =
 const orderRoutes =
     require("./routes/orderRoutes");
 
+const validatore =
+    require("./validators/authValidator");
+
+const errorHandler =
+    require("./middleware/errorMiddleware");
+
 const app = express();
 
 app.use(cors({
@@ -26,6 +32,7 @@ app.get("/", (req, res) => {
         message: "Ecommerce Backend Running"
     });
 });
+
 
 app.get("/test", (req, res) => {
     res.send("Backend Working");
@@ -43,5 +50,7 @@ app.use(
     "/api/orders",
     orderRoutes
 );
+
+app.use(errorHandler);
 
 module.exports = app;
