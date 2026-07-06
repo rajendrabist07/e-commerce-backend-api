@@ -55,11 +55,29 @@ const orderSchema = new mongoose.Schema(
             default: false,
         },
 
-        paidAt: Date,
-
         isDelivered: {
             type: Boolean,
             default: false,
+        },
+
+        paymentMethod: {
+            type: String,
+            enum: ["COD", "Stripe", "Khalti", "eSewa"],
+            default: "COD",
+        },
+
+        paymentStatus: {
+            type: String,
+            enum: ["Pending", "Paid", "Failed"],
+            default: "Pending",
+        },
+
+        paidAt: {
+            type: Date,
+        },
+
+        transactionId: {
+            type: String,
         },
 
         orderStatus: {
@@ -76,6 +94,8 @@ const orderSchema = new mongoose.Schema(
 
         deliveredAt: Date,
     },
+
+
 
 
     {

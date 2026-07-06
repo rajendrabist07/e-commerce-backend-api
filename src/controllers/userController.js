@@ -3,6 +3,29 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+const generateResetToken = require("../utils/generateToken");
+
+const emailService =
+    require("../services/emailService");
+
+const welcomeEmail =
+    require("../templates/welcomeEmail");
+
+const sanitizeUser = (user) => {
+
+    const safeUser = user.toObject
+        ? user.toObject()
+        : { ...user };
+
+    delete safeUser.password;
+
+    delete safeUser.resetPasswordToken;
+
+    delete safeUser.resetPasswordExpire;
+
+    return safeUser;
+
+};
 
 
 const registerUser = asyncHandler(async (req, res) => {
@@ -28,11 +51,24 @@ const registerUser = asyncHandler(async (req, res) => {
         success: true,
         message: "User Registered",
         data: {
-            user,
+            user: sanitizeUser(user),
         },
     });
 
+    await emailService.sendEmail(
+
+        user.email,
+
+        "Welcome To Ecommerce",
+
+        welcomeEmail(user.name)
+
+    );
+
 });
+
+
+
 
 const loginUser = asyncHandler(async (req, res) => {
 
@@ -69,7 +105,7 @@ const loginUser = asyncHandler(async (req, res) => {
         success: true,
         message: "Login Successful",
         data: {
-            user,
+            user: sanitizeUser(user),
             token,
         },
     });
@@ -103,10 +139,131 @@ const adminOnly = (req, res, next) => {
 
 };
 
+// Forgot Password
+const forgotPassword = asyncHandler(async (req, res) => {
+
+    const { email } = req.body;
+
+    const user =
+        await User.findOne({ email });
+
+    if (!user) {
+
+        res.status(404);
+
+        throw new Error("User Not Found");
+
+    }
+
+    const resetToken =
+        generateResetToken();
+
+    user.resetPasswordToken =
+        resetToken;
+
+    user.resetPasswordExpire =
+        Date.now() +
+        15 * 60 * 1000;
+
+    await user.save();
+
+    const resetUrl =
+        `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+
+    await emailService.sendEmail(
+
+        user.email,
+
+        "Reset Password",
+
+        `
+        <h2>Password Reset</h2>
+
+        <p>
+
+        Click below link
+
+        </p>
+
+        <a href="${resetUrl}">
+
+        Reset Password
+
+        </a>
+        `
+
+    );
+
+    res.status(200).json({
+
+        success: true,
+
+        message:
+            "Password Reset Email Sent",
+
+    });
+
+});
+
+// Reset Password
+
+const resetPassword = asyncHandler(async (req, res) => {
+
+    const token =
+        req.params.token;
+
+    const user =
+        await User.findOne({
+
+            resetPasswordToken:
+                token,
+
+            resetPasswordExpire: {
+
+                $gt: Date.now(),
+
+            },
+
+        });
+
+    if (!user) {
+
+        res.status(400);
+
+        throw new Error(
+            "Invalid Or Expired Token"
+        );
+
+    }
+
+    user.password =
+        await bcrypt.hash(req.body.password, 10);
+
+    user.resetPasswordToken =
+        undefined;
+
+    user.resetPasswordExpire =
+        undefined;
+
+    await user.save();
+
+    res.status(200).json({
+
+        success: true,
+
+        message:
+            "Password Reset Successfully",
+
+    });
+
+});
+
 
 module.exports = {
     registerUser,
     loginUser,
     getUser,
     adminOnly,
+    forgotPassword,
+    resetPassword,
 };

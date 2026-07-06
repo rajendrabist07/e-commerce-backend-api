@@ -1,173 +1,173 @@
-const { data } = require("react-router-dom");
+const asyncHandler = require("express-async-handler");
 const Order = require("../models/Order");
+const productService = require("../services/productService");
+const orderService = require("../services/orderService");
 
-const placeOrder = async (req, res) => {
-    try {
 
-        const {
-            orderItems,
-            shippingAddress,
-            totalPrice,
-        } = req.body;
+const placeOrder = asyncHandler(async (req, res) => {
 
-        const order = await Order.create({
-            user: req.user._id,
-            orderItems,
-            shippingAddress,
-            totalPrice,
-        });
+    const {
+        orderItems,
+        shippingAddress,
+        totalPrice,
+        paymentMethod,
+    } = req.body;
 
-        res.status(201).json({
-            success: true,
-            message: "Order Placed Successfully",
-            data: {
-                order,
-            },
-        });
+    // Empty Order Check
+    if (!orderItems || orderItems.length === 0) {
 
-    } catch (error) {
+        res.status(400);
 
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
+        throw new Error("No Order Items");
 
     }
-};
+
+    // Check Stock & Update Stock
+    for (const item of orderItems) {
+
+        await productService.updateProductStock(
+
+            item.product,
+
+            item.quantity
+
+        );
+
+    }
+
+    // Create Order
+    const order = await Order.create({
+
+        user: req.user._id,
+
+        orderItems,
+
+        shippingAddress,
+
+        totalPrice,
+
+        paymentMethod,
+
+    });
+
+    res.status(201).json({
+
+        success: true,
+
+        message: "Order Placed Successfully",
+
+        data: {
+
+            order,
+
+        },
+
+    });
+
+});
 
 // GET MY ORDERS
 
-const getMyOrders = async (req, res) => {
-    try {
+const getMyOrders = asyncHandler(async (req, res) => {
 
-        const orders = await Order.find({
-            user: req.user._id,
-        })
-            .populate("orderItems.product");
+    const orders = await Order.find({
+        user: req.user._id,
+    }).populate("orderItems.product");
 
-        res.status(200).json({
-            success: true,
-            count: orders.length,
-            data: {
-                orders,
-            },
-        });
+    res.status(200).json({
+        success: true,
+        message: "Orders Fetched Successfully",
+        count: orders.length,
+        data: {
+            orders,
+        },
+    });
 
-    } catch (error) {
+});
 
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
+const getSingleOrder = asyncHandler(async (req, res) => {
 
-    }
-};
+    const order = await Order.findById(req.params.id)
+        .populate("user")
+        .populate("orderItems.product");
 
-const getSingleOrder = async (req, res) => {
-    try {
+    if (!order) {
 
-        const order =
-            await Order.findById(
-                req.params.id
-            )
-                .populate("user")
-                .populate("orderItems.product");
+        res.status(404);
 
-        if (!order) {
-
-            return res.status(404).json({
-                success: false,
-                message: "Order Not Found",
-            });
-
-        }
-
-        res.status(200).json({
-            success: true,
-            data: {
-                order,
-            },
-        });
-
-    } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
+        throw new Error("Order Not Found");
 
     }
+
+    res.status(200).json({
+        success: true,
+        message: "Order Fetched Successfully",
+        data: {
+            order,
+        },
+    });
+
+});
+
+// Get Order By Id
+
+const getOrderById = async (id) => {
+
+    return await Order.findById(id);
+
 };
+
 
 // ADMIN - GET ALL ORDERS
-const getAllOrders = async (req, res) => {
-    try {
+const getAllOrders = asyncHandler(async (req, res) => {
 
-        const orders = await Order.find()
-            .populate("user", "name email")
-            .populate("orderItems.product", "name price");
+    const orders = await Order.find()
+        .populate("user", "name email")
+        .populate("orderItems.product", "name price");
 
-        res.status(200).json({
-            success: true,
-            totalOrders: orders.length,
-            data: {
-                orders,
-            },
-        });
+    res.status(200).json({
+        success: true,
+        message: "All Orders Fetched Successfully",
+        totalOrders: orders.length,
+        data: {
+            orders,
+        },
+    });
 
-    } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
-
-    }
-};
+});
 
 // Update Order
-const updateOrderStatus = async (req, res) => {
+const updateOrderStatus = asyncHandler(async (req, res) => {
 
-    try {
+    const order = await Order.findById(req.params.id);
 
-        const order = await Order.findById(req.params.id);
+    if (!order) {
 
-        if (!order) {
+        res.status(404);
 
-            return res.status(404).json({
-                success: false,
-                message: "Order Not Found"
-            });
-
-        }
-
-        order.orderStatus = req.body.orderStatus;
-
-        await order.save();
-
-        res.status(200).json({
-            success: true,
-            message: "Order Status Updated",
-            data: {
-                order,
-            },
-        });
-
-    } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
+        throw new Error("Order Not Found");
 
     }
 
-};
+    order.orderStatus = req.body.orderStatus;
+
+    await order.save();
+
+    res.status(200).json({
+        success: true,
+        message: "Order Status Updated Successfully",
+        data: {
+            order,
+        },
+    });
+
+});
 
 module.exports = {
     placeOrder,
     getMyOrders,
     getSingleOrder,
+    getOrderById,
     getAllOrders,
     updateOrderStatus,
 };

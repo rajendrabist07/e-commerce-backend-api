@@ -23,10 +23,72 @@ const productSchema = new mongoose.Schema(
             default: 0,
         },
 
-        image: {
+        category: {
+
             type: String,
-            default: "",
+
+            required: true,
+
+            trim: true,
+
         },
+
+        image: {
+            url: {
+                type: String,
+                default: "",
+            },
+
+            public_id: {
+                type: String,
+                default: "",
+            },
+        },
+
+        rating: {
+            type: Number,
+            default: 0,
+        },
+
+        numReviews: {
+            type: Number,
+            default: 0,
+        },
+
+        sold: {
+            type: Number,
+            default: 0,
+        },
+
+        reviews: [
+            {
+                user: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "User",
+                    required: true,
+                },
+
+                name: {
+                    type: String,
+                    required: true,
+                },
+
+                rating: {
+                    type: Number,
+                    required: true,
+                },
+
+                comment: {
+                    type: String,
+                    required: true,
+                },
+
+                createdAt: {
+                    type: Date,
+                    default: Date.now,
+                },
+            },
+        ],
     },
     {
         timestamps: true,

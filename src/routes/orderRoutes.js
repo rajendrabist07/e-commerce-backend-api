@@ -16,16 +16,23 @@ const {
 } = require(
     "../controllers/orderController"
 );
-const { route } = require("./cartRoutes");
+
+const {
+    placeOrderValidation,
+    updateOrderStatusValidation,
+} = require("../validators/orderValidation");
 
 
-router.post("/", protect, placeOrder);
+const validate = require("../middleware/validationMiddleware");
+
+
+router.post("/", protect, placeOrderValidation, validate, placeOrder);
 
 router.get("/my-orders", protect, getMyOrders);
 
 router.get("/admin", protect, adminOnly, getAllOrders);
 
-router.put("/admin/:id", protect, adminOnly, updateOrderStatus);
+router.put("/admin/:id", protect, adminOnly, updateOrderStatusValidation, validate, updateOrderStatus);
 
 router.get("/:id", protect, getSingleOrder);
 

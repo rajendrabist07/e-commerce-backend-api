@@ -14,11 +14,20 @@ const {
     "../controllers/cartController"
 );
 
+const {
+    addToCartValidation,
+    updateCartValidation,
+} = require("../validators/cartValidation");
+
+const validate = require("../middleware/validationMiddleware");
+
 
 // ADD ITEM
 router.post(
     "/",
     protect,
+    addToCartValidation,
+    validate,
     addToCart
 );
 
@@ -42,6 +51,8 @@ router.delete(
 router.put(
     "/:id",
     protect,
+    updateCartValidation,
+    validate,
     updateCartQuantity
 )
 

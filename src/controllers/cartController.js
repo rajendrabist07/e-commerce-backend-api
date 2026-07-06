@@ -1,142 +1,163 @@
+const asyncHandler = require("express-async-handler");
 const Cart = require("../models/Cart");
 
 
 // ADD TO CART
-const addToCart = async (req, res) => {
-    try {
+const addToCart = asyncHandler(async (req, res) => {
 
-        const { productId, quantity } = req.body;
+    const { productId, quantity } = req.body;
 
-        const cartItem = await Cart.create({
-            user: req.user._id,
-            product: productId,
-            quantity,
-        });
+    let cartItem = await Cart.findOne({
+        user: req.user._id,
+        product: productId,
+    });
 
-        res.status(201).json({
-            success: true,
-            message: "Product Added To Cart",
-            data: {
-                cartItem,
-            },
-        });
+    if (cartItem) {
 
-    } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
-
-    }
-};
-
-
-// GET CART ITEMS
-const getCartItems = async (req, res) => {
-    try {
-
-        const cartItems = await Cart.find({
-            user: req.user._id,
-        }).populate("product");
-
-        res.status(200).json({
-            success: true,
-            data: {
-                cartItems,
-            },
-        });
-
-    } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
-
-    }
-};
-
-
-// REMOVE CART ITEM
-const removeCartItem = async (req, res) => {
-    try {
-
-        const cartItem =
-            await Cart.findById(
-                req.params.id
-            );
-
-        if (!cartItem) {
-
-            return res.status(404).json({
-                success: false,
-                message: "Cart Item Not Found",
-            });
-
-        }
-
-        await cartItem.deleteOne();
-
-        res.status(200).json({
-            success: true,
-            message: "Item Removed",
-        });
-
-    } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
-
-    }
-};
-
-// UPDATE CART QUANTITY
-
-const updateCartQuantity = async (req, res) => {
-    try {
-
-        const { quantity } = req.body;
-
-        const cartItem = await Cart.findById(
-            req.params.id
-        );
-
-        if (!cartItem) {
-            return res.status(404).json({
-                success: false,
-                message: "Cart Item Not Found",
-            });
-        }
-
-        cartItem.quantity = quantity;
+        cartItem.quantity += quantity;
 
         await cartItem.save();
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
-            message: "Quantity Updated",
+            message: "Cart Quantity Updated",
             data: {
                 cartItem,
-            }
-        });
-
-    } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message,
+            },
         });
 
     }
-};
+
+    cartItem = await Cart.create({
+
+        user: req.user._id,
+        product: productId,
+        quantity,
+
+    });
+
+    res.status(201).json({
+        success: true,
+        message: "Product Added To Cart",
+        data: {
+            cartItem,
+        },
+    });
+
+});
+
+
+// GET CART
+
+const getCartItems = asyncHandler(async (req, res) => {
+
+    const cartItems = await Cart.find({
+        user: req.user._id,
+    }).populate("product");
+
+    res.status(200).json({
+        success: true,
+        message: "Cart Fetched Successfully",
+        data: {
+            cartItems,
+        },
+    });
+
+});
+
+
+
+// UPDATE CART
+const updateCartQuantity = asyncHandler(async (req, res) => {
+
+    const { quantity } = req.body;
+
+    if (quantity <= 0) {
+
+        res.status(400);
+
+        throw new Error(
+            "Quantity must be greater than zero"
+        );
+
+    }
+
+    const cartItem = await Cart.findOne({
+
+        _id: req.params.id,
+        user: req.user._id,
+
+    });
+
+    if (!cartItem) {
+
+        res.status(404);
+
+        throw new Error(
+            "Cart Item Not Found"
+        );
+
+    }
+
+    cartItem.quantity = quantity;
+
+    await cartItem.save();
+
+    res.status(200).json({
+
+        success: true,
+
+        message: "Cart Updated Successfully",
+
+        data: {
+
+            cartItem,
+
+        },
+
+    });
+
+});
+
+
+// REMOVE CART ITEM
+const removeCartItem = asyncHandler(async (req, res) => {
+
+    const cartItem = await Cart.findOne({
+
+        _id: req.params.id,
+        user: req.user._id,
+
+    });
+
+    if (!cartItem) {
+
+        res.status(404);
+
+        throw new Error(
+            "Cart Item Not Found"
+        );
+
+    }
+
+    await cartItem.deleteOne();
+
+    res.status(200).json({
+
+        success: true,
+
+        message: "Cart Item Removed Successfully",
+
+    });
+
+});
 
 
 module.exports = {
+
     addToCart,
     getCartItems,
-    removeCartItem,
     updateCartQuantity,
+    removeCartItem,
+
 };

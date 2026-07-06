@@ -1,169 +1,228 @@
-const { data } = require("react-router-dom");
-const Product = require("../models/Product");
+const asyncHandler = require("express-async-handler");
+const product = require("../models/Product");
+const imageService = require("../services/imageService")
+const productService = require("../services/productService");
+const { url } = require("../config/cloudinary");
+const { raw } = require("express");
 
 
 
-const createProduct = async (req, res) => {
-    try {
+const createProduct = asyncHandler(async (req, res) => {
 
-        const {
+    const {
+        name,
+        description,
+        price,
+        stock,
+        category,
+    } = req.body;
+
+    let image = {
+        url: "",
+        public_id: "",
+    };
+
+    if (req.file) {
+
+        const uploadedImage =
+            await imageService.uploadImage(req.file);
+
+        image = {
+            url: uploadedImage.secure_url,
+            public_id: uploadedImage.public_id,
+        };
+
+    }
+
+    const product =
+        await productService.createProduct({
+
             name,
             description,
             price,
             stock,
+            category,
             image,
-        } = req.body;
 
-        const product = await Product.create({
-            name,
-            description,
-            price,
-            stock,
-            image,
         });
 
-        res.status(201).json({
-            success: true,
-            message: "Product Created Successfully",
-            data: {
-                product,
-            },
-        });
+    res.status(201).json({
 
-    } catch (error) {
+        success: true,
 
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
+        message: "Product Created Successfully",
+
+        data: {
+
+            product,
+
+        },
+
+    });
+
+});
+
+const getProducts = asyncHandler(async (req, res) => {
+
+    const result =
+        await productService.getProducts(req.query);
+
+    res.status(200).json({
+
+        success: true,
+
+        count: result.products.length,
+
+        ...result,
+
+    });
+
+});
+
+const getSingleProduct = asyncHandler(async (req, res) => {
+
+    const product = await productService.getProductById(req.params.id);
+
+    if (!product) {
+
+        res.status(404);
+
+        throw new Error("Product Not Found");
 
     }
-};
 
-const getProducts = async (req, res) => {
-    try {
+    res.status(200).json({
+        success: true,
+        message: "Product Fetched Successfully",
+        data: {
+            product,
+        },
+    });
 
-        const products = await Product.find();
+});
 
-        res.status(200).json({
-            success: true,
-            message: "Products Fetched Successfully",
-            count: products.length,
-            data: {
-                products,
-            },
-        });
+const updateProduct = asyncHandler(async (req, res) => {
 
-    } catch (error) {
+    const existingProduct =
+        await productService.getProductById(req.params.id);
 
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
+    if (!existingProduct) {
+
+        res.status(404);
+        throw new Error("Product Not Found");
 
     }
-};
 
-const getSingleProduct = async (req, res) => {
-    try {
+    if (req.file) {
 
-        const product = await Product.findById(
-            req.params.id
-        );
+        // Delete old image
+        if (existingProduct.image?.public_id) {
 
-        if (!product) {
-            return res.status(404).json({
-                success: false,
-                message: "Product Not Found",
-            });
+            await imageService.deleteImage(
+                existingProduct.image.public_id
+            );
+
         }
 
-        res.status(200).json({
-            success: true,
-            message: "Product Fetched Successfully",
-            data: {
-                product,
-            },
-        });
+        // Upload new image
+        const uploadedImage =
+            await imageService.uploadImage(req.file);
 
-    } catch (error) {
+        req.body.image = {
 
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
+            url: uploadedImage.secure_url,
+
+            public_id: uploadedImage.public_id,
+
+        };
 
     }
-};
 
-const updateProduct = async (req, res) => {
-    try {
-
-        const product = await Product.findByIdAndUpdate(
+    const updatedProduct =
+        await productService.updateProduct(
             req.params.id,
-            req.body,
-            {
-                new: true,
-                runValidators: true,
-            }
+            req.body
         );
 
-        if (!product) {
-            return res.status(404).json({
-                success: false,
-                message: "Product Not Found",
-            });
-        }
+    res.status(200).json({
 
-        res.status(200).json({
-            success: true,
-            message: "Product Updated Successfully",
-            data: {
-                product,
-            },
-        });
+        success: true,
 
-    } catch (error) {
+        message: "Product Updated Successfully",
 
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
+        data: {
+
+            product: updatedProduct,
+
+        },
+
+    });
+
+});
+
+const deleteProduct = asyncHandler(async (req, res) => {
+
+    const product =
+        await productService.getProductById(req.params.id);
+
+    if (!product) {
+
+        res.status(404);
+
+        throw new Error("Product Not Found");
 
     }
-};
 
-const deleteProduct = async (req, res) => {
-  try {
+    // Delete image from Cloudinary
+    if (product.image?.public_id) {
 
-    const product = await Product.findById(
-      req.params.id
+        await imageService.deleteImage(
+            product.image.public_id
+        );
+
+    }
+
+    // Delete from MongoDB
+    await productService.deleteProduct(
+        req.params.id
+    );
+
+    res.status(200).json({
+
+        success: true,
+
+        message: "Product Deleted Successfully",
+
+    });
+
+});
+
+//  review
+const createProductReview = asyncHandler(async (req, res) => {
+
+    const { rating, comment } = req.body;
+
+    const product = await productService.addOrUpdateReview(
+        req.params.id,
+        req.user,
+        {
+            rating: Number(rating),
+            comment,
+        }
     );
 
     if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product Not Found",
-      });
+        res.status(404);
+        throw new Error("Product Not Found");
     }
 
-    await product.deleteOne();
-
     res.status(200).json({
-      success: true,
-      message: "Product Deleted Successfully",
+        success: true,
+        message: "Review Saved Successfully",
+        data: { product },
     });
 
-  } catch (error) {
-
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-
-  }
-};
-
+});
 
 
 module.exports = {
@@ -172,4 +231,5 @@ module.exports = {
     getSingleProduct,
     updateProduct,
     deleteProduct,
+    createProductReview,
 };
