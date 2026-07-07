@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  backend:
+    build: .
+
+    container_name: ecommerce-backend
+
+    restart: unless-stopped
+
+    ports:
+      - "2000:2000"
+
+    env_file:
+      - .env
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+    command: npm run dev
