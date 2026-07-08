@@ -94,7 +94,7 @@ Create a `.env` file at the project root and set at least the following variable
 - `MAIL_FROM` — default from address for emails
 - `DISABLE_EMAIL` — set to `true` to skip sending emails in envs
 - `MAX_FILE_SIZE` — max upload size in bytes (optional)
-- `CORS_ORIGIN` — comma separated allowed origins
+- `CORS_ORIGIN` — comma separated allowed origins (for example: `http://localhost:5173,https://ecommerce-frontend-one-umber.vercel.app`)
 - `JSON_BODY_LIMIT` — JSON body parser size (default `10kb`)
 - `URLENCODED_BODY_LIMIT` — urlencoded parser size (default `10kb`)
 - `RATE_LIMIT_WINDOW_MS` — rate limit window in ms
